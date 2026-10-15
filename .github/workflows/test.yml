@@ -1,0 +1,41 @@
+name: Secp
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_offset:
+        description: 'Start Offset for this account'
+        required: true
+        default: '140000000000'
+      steps:
+        description: 'Total Steps for this account'
+        required: true
+        default: '50000000'
+
+jobs:
+  build-and-search:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+        total: [5]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Release Binary
+        run: cargo build --release
+
+      - name: Run Search Script with Shard Args
+        run: ./target/release/secp_search ${{ matrix.shard }} ${{ matrix.total }} ${{ github.event.inputs.start_offset }} ${{ github.event.inputs.steps }}
+
+      - name: Upload Result Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-shard-${{ matrix.shard }}
+          path: trap_table8_shard_${{ matrix.shard }}.bin
